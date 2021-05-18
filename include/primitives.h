@@ -1,6 +1,8 @@
 #pragma once
 
 #include <fstream>
+#include <functional>
+#include <iostream>
 #include <iterator>
 #include <map>
 #include <memory>
@@ -8,8 +10,6 @@
 #include <set>
 #include <valarray>
 #include <vector>
-#include <functional>
-#include <iostream>
 
 class Point
 {
