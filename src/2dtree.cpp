@@ -31,7 +31,7 @@ void PointSet::put(const Point & p)
 {
     if (m_root == nullptr) {
         m_size = 1;
-        m_root = std::make_shared<Node>(p, true, *(new Rect({INT32_MIN, INT32_MIN}, {INT32_MAX, INT32_MAX})));
+        m_root = std::make_shared<Node>(p, true, Rect({INT32_MIN, INT32_MIN}, {INT32_MAX, INT32_MAX}));
         return;
     }
     if (!contains(p)) {
