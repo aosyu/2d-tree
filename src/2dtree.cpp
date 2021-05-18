@@ -45,7 +45,7 @@ bool PointSet::needToGoLeft(const nodePtr & current, const Point & p) const
             ((current->vertical || current == m_root) && p.y() <= current->point.y());
 }
 
-void PointSet::put(nodePtr & current, const Point & p, bool isLeftChild, nodePtr & parent)
+void PointSet::put(nodePtr & current, const Point & p, bool isLeftChild, const nodePtr & parent)
 {
     if (current == nullptr) {
         m_size++;
@@ -157,7 +157,7 @@ std::pair<iterator, iterator> PointSet::nearest(const Point & p, std::size_t k) 
     std::set<Point, decltype(pointComparator(p))> m_nearest_answer(pointComparator(p));
     m_nearest_answer.insert(m_root->point);
     nearest(p, *m_root, m_nearest_answer, k);
-    for (auto i : m_nearest_answer) {
+    for (const auto i : m_nearest_answer) {
         ans.put(i);
     }
     return {ans.begin(), ans.end()};
@@ -165,7 +165,7 @@ std::pair<iterator, iterator> PointSet::nearest(const Point & p, std::size_t k) 
 
 std::ostream & operator<<(std::ostream & out, const PointSet & p)
 {
-    for (auto it : p) {
+    for (const auto it : p) {
         out << &it << std::endl;
     }
     return out;

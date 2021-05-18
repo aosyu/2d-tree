@@ -270,7 +270,7 @@ private:
     mutable std::vector<std::shared_ptr<PointSet>> nearest_cash;
 
     bool contains(const std::shared_ptr<Node> & current, const Point & p) const;
-    void put(std::shared_ptr<Node> & current, const Point & p, bool isLeftChild, std::shared_ptr<Node> & parent);
+    void put(std::shared_ptr<Node> & current, const Point & p, bool isLeftChild, const std::shared_ptr<Node> & parent);
     void range(const Rect & r, const std::shared_ptr<Node> & node, PointSet & m_range_result) const;
     void nearest(const Point & p, const Node & current, std::set<Point, decltype(pointComparator(p))> & m_nearest_answer, size_t k) const;
     bool needToGoLeft(const std::shared_ptr<Node> & current, const Point & p) const;
