@@ -15,14 +15,14 @@ class Point
 {
 public:
     Point()
-            : m_x(0)
-            , m_y(0)
+        : m_x(0)
+        , m_y(0)
     {
     }
 
     Point(double x, double y)
-            : m_x(x)
-            , m_y(y)
+        : m_x(x)
+        , m_y(y)
     {
     }
 
@@ -57,8 +57,8 @@ class Rect
 {
 public:
     Rect(const Point & left_bottom, const Point & right_top)
-            : m_left_bottom(left_bottom)
-            , m_right_top(right_top)
+        : m_left_bottom(left_bottom)
+        , m_right_top(right_top)
     {
     }
 
@@ -168,9 +168,9 @@ public:
     struct Node
     {
         Node(const Point & p, bool v, const Rect & r)
-                : vertical(v)
-                , point(p)
-                , rect(r)
+            : vertical(v)
+            , point(p)
+            , rect(r)
         {
         }
         bool vertical = true;
@@ -191,7 +191,7 @@ public:
 
         iterator() = default;
         iterator(const PointSet & p, std::size_t i)
-                : m_it(i)
+            : m_it(i)
         {
             m_tree.reserve(p.size());
             init(p.m_root);

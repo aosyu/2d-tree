@@ -42,7 +42,7 @@ void PointSet::put(const Point & p)
 bool PointSet::needToGoLeft(const nodePtr & current, const Point & p) const
 {
     return ((!current->vertical || current == m_root) && p.x() <= current->point.x()) ||
-           ((current->vertical || current == m_root) && p.y() <= current->point.y());
+            ((current->vertical || current == m_root) && p.y() <= current->point.y());
 }
 
 void PointSet::updateCoordinates(const nodePtr & parent, bool isLeftChild, double & xmin, double & xmax, double & ymin, double & ymax)
