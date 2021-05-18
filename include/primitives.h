@@ -269,6 +269,8 @@ private:
     void nearest(const Point & p, const Node & current, std::set<Point, decltype(pointComparator(p))> & m_nearest_answer, size_t k) const;
     bool needToGoLeft(const std::shared_ptr<Node> & current, const Point & p) const;
     void updateCoordinates(const std::shared_ptr<Node> & parent, bool isLeftChild, double & xmin, double & xmax, double & ymin, double & ymax);
+    void makeTree(std::vector<Point> & input, const std::shared_ptr<Node> & current);
+    std::shared_ptr<Node> getChildPtr(const std::shared_ptr<Node> & parent, bool isLeftChild, const Point & p);
 };
 
 } // namespace kdtree

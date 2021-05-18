@@ -9,13 +9,87 @@ using nodePtr = std::shared_ptr<Node>;
 PointSet::PointSet(const std::string & filename)
 {
     std::ifstream in(filename);
+    std::vector<Point> input;
     if (in.is_open()) {
         double x, y;
         while (in >> x >> y) {
-            put({x, y});
+            input.push_back({x, y});
         }
     }
+    if (!input.empty()) {
+        sort(input.begin(), input.end(), [](const Point & first, const Point & second) {
+            return first.x() < second.x();
+        });
+        m_size = 1;
+        Point med = input[input.size() / 2];
+        m_root = std::make_shared<Node>(med, true, Rect({INT32_MIN, INT32_MIN}, {INT32_MAX, INT32_MAX}));
+        makeTree(input, m_root);
+    }
     in.close();
+}
+
+void sortByX(std::vector<Point> & input)
+{
+    sort(input.begin(), input.end(), [](const Point & first, const Point & second) {
+        return first.x() < second.x();
+    });
+}
+void sortByY(std::vector<Point> & input)
+{
+    sort(input.begin(), input.end(), [](const Point & first, const Point & second) {
+        return first.y() < second.y();
+    });
+}
+
+void PointSet::updateCoordinates(const nodePtr & parent, bool isLeftChild, double & xmin, double & xmax, double & ymin, double & ymax)
+{
+    if (isLeftChild) {
+        if (parent->vertical) {
+            xmax = parent->point.x();
+        }
+        else {
+            ymax = parent->point.y();
+        }
+    }
+    else {
+        if (parent->vertical) {
+            xmin = parent->point.x();
+        }
+        else {
+            ymin = parent->point.y();
+        }
+    }
+}
+
+std::shared_ptr<Node> PointSet::getChildPtr(const nodePtr & parent, bool isLeftChild, const Point & p)
+{
+    double xmin = parent->rect.xmin(), xmax = parent->rect.xmax(), ymin = parent->rect.ymin(), ymax = parent->rect.ymax();
+    updateCoordinates(parent, isLeftChild, xmin, xmax, ymin, ymax);
+    return std::make_shared<Node>(p, !parent->vertical, Rect({xmin, ymin}, {xmax, ymax}));
+}
+
+void PointSet::makeTree(std::vector<Point> & input, const nodePtr & current)
+{
+    if (input.size() == 1) {
+        return;
+    }
+    m_size++;
+    std::size_t const half_size = input.size() / 2;
+    std::vector<Point> left(input.begin(), input.begin() + half_size);
+    std::vector<Point> right(input.begin() + half_size, input.end());
+    if (current->vertical) {
+        sortByX(left);
+        sortByX(right);
+    }
+    else {
+        sortByY(left);
+        sortByY(right);
+    }
+
+    current->left = getChildPtr(current, true, left[left.size() / 2]);
+    makeTree(left, current->left);
+    current->right = getChildPtr(current, false, right[right.size() / 2]);
+    makeTree(right, current->right);
 }
 
 bool PointSet::empty() const
@@ -45,33 +119,11 @@ bool PointSet::needToGoLeft(const nodePtr & current, const Point & p) const
             ((current->vertical || current == m_root) && p.y() <= current->point.y());
 }
 
-void PointSet::updateCoordinates(const nodePtr & parent, bool isLeftChild, double & xmin, double & xmax, double & ymin, double & ymax)
-{
-    if (isLeftChild) {
-        if (parent->vertical) {
-            xmax = parent->point.x();
-        }
-        else {
-            ymax = parent->point.y();
-        }
-    }
-    else {
-        if (parent->vertical) {
-            xmin = parent->point.x();
-        }
-        else {
-            ymin = parent->point.y();
-        }
-    }
-}
-
 void PointSet::put(nodePtr & current, const Point & p, bool isLeftChild, const nodePtr & parent)
 {
     if (current == nullptr) {
         m_size++;
-        double xmin = parent->rect.xmin(), xmax = parent->rect.xmax(), ymin = parent->rect.ymin(), ymax = parent->rect.ymax();
-        updateCoordinates(parent, isLeftChild, xmin, xmax, ymin, ymax);
-        current = std::make_shared<Node>(p, !parent->vertical, Rect({xmin, ymin}, {xmax, ymax}));
+        current = getChildPtr(parent, isLeftChild, p);
     }
     else if (needToGoLeft(current, p)) {
         put(current->left, p, true, current);
