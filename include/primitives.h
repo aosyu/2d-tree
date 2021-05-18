@@ -266,8 +266,6 @@ private:
 
     std::shared_ptr<Node> m_root;
     std::size_t m_size = 0;
-    mutable std::vector<std::shared_ptr<PointSet>> range_cash;
-    mutable std::vector<std::shared_ptr<PointSet>> nearest_cash;
 
     bool contains(const std::shared_ptr<Node> & current, const Point & p) const;
     void put(std::shared_ptr<Node> & current, const Point & p, bool isLeftChild, const std::shared_ptr<Node> & parent);

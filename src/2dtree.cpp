@@ -108,10 +108,9 @@ void PointSet::range(const Rect & r, const nodePtr & node, PointSet & m_range_re
 
 std::pair<iterator, iterator> PointSet::range(const Rect & r) const
 {
-    PointSet * m_range_result = new PointSet();
-    range_cash.push_back(std::shared_ptr<PointSet>(m_range_result));
-    range(r, m_root, *m_range_result);
-    return {m_range_result->begin(), m_range_result->end()};
+    PointSet m_range_result;
+    range(r, m_root, m_range_result);
+    return {m_range_result.begin(), m_range_result.end()};
 }
 
 void PointSet::nearest(const Point & p, const Node & current, std::set<Point, decltype(pointComparator(p))> & m_nearest_answer, const size_t k) const
