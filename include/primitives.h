@@ -67,6 +67,7 @@ public:
     double xmax() const { return m_right_top.x(); }
     double ymax() const { return m_right_top.y(); }
     double distance(const Point & p) const
+
     {
         const double x = std::max({xmin() - p.x(), p.x() - xmax(), 0.0});
         const double y = std::max({ymin() - p.y(), p.y() - ymax(), 0.0});
@@ -74,10 +75,7 @@ public:
     }
 
     bool contains(const Point & p) const { return p.x() > xmin() && p.y() > ymin() && p.x() < xmax() && p.y() < ymax(); }
-    bool intersects(const Rect & rect) const
-    {
-        return !(m_right_top < rect.m_left_bottom) && !(rect.m_right_top < m_left_bottom);
-    }
+    bool intersects(const Rect & rect) const { return !(m_right_top < rect.m_left_bottom) && !(rect.m_right_top < m_left_bottom); }
 
 private:
     Point m_left_bottom;
@@ -90,6 +88,7 @@ class PointSet
 {
 public:
     using iterator = std::set<Point>::iterator;
+
     PointSet(const std::string & filename = {})
     {
         std::ifstream in(filename);
@@ -162,7 +161,6 @@ private:
 } // namespace rbtree
 
 namespace kdtree {
-//using PointSet = rbtree::PointSet;
 
 class PointSet
 {
@@ -196,17 +194,17 @@ public:
             : m_it(i)
         {
             m_tree.reserve(p.size());
-            traverse(p.m_root);
+            init(p.m_root);
         }
 
-        void traverse(const std::shared_ptr<Node> & node)
+        void init(const std::shared_ptr<Node> & node)
         {
             if (node == nullptr) {
                 return;
             }
             m_tree.push_back(node->point);
-            traverse(node->left);
-            traverse(node->right);
+            init(node->left);
+            init(node->right);
         }
 
         reference operator*() { return m_tree[m_it]; }
@@ -224,8 +222,7 @@ public:
         }
         bool operator==(const iterator & other) const
         {
-            if (m_it != other.m_it // ???????
-                || m_tree.size() != other.m_tree.size()) {
+            if (m_it != other.m_it || m_tree.size() != other.m_tree.size()) {
                 return false;
             }
             for (size_t i = 0; i < m_tree.size(); i++) {
@@ -238,7 +235,7 @@ public:
         bool operator!=(const iterator & other) const { return !(operator==(other)); }
 
     private:
-        int m_it;
+        int m_it = 0;
         std::vector<Point> m_tree;
     };
 
@@ -261,10 +258,9 @@ public:
 private:
     static std::function<bool(Point, Point)> pointComparator(const Point & p)
     {
-        return [&p](Point a, Point b) { return p.distance(a) < p.distance(b) ? -1 : 1; };
+        return [&p](Point a, Point b) { return p.distance(a) < p.distance(b); };
     }
-
-    std::shared_ptr<Node> m_root;
+    std::shared_ptr<Node> m_root = nullptr;
     std::size_t m_size = 0;
 
     bool contains(const std::shared_ptr<Node> & current, const Point & p) const;
@@ -272,6 +268,7 @@ private:
     void range(const Rect & r, const std::shared_ptr<Node> & node, PointSet & m_range_result) const;
     void nearest(const Point & p, const Node & current, std::set<Point, decltype(pointComparator(p))> & m_nearest_answer, size_t k) const;
     bool needToGoLeft(const std::shared_ptr<Node> & current, const Point & p) const;
+    void updateCoordinates(const std::shared_ptr<Node> & parent, bool isLeftChild, double & xmin, double & xmax, double & ymin, double & ymax);
 };
 
 } // namespace kdtree

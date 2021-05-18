@@ -45,27 +45,32 @@ bool PointSet::needToGoLeft(const nodePtr & current, const Point & p) const
             ((current->vertical || current == m_root) && p.y() <= current->point.y());
 }
 
+void PointSet::updateCoordinates(const nodePtr & parent, bool isLeftChild, double & xmin, double & xmax, double & ymin, double & ymax)
+{
+    if (isLeftChild) {
+        if (parent->vertical) {
+            xmax = parent->point.x();
+        }
+        else {
+            ymax = parent->point.y();
+        }
+    }
+    else {
+        if (parent->vertical) {
+            xmin = parent->point.x();
+        }
+        else {
+            ymin = parent->point.y();
+        }
+    }
+}
+
 void PointSet::put(nodePtr & current, const Point & p, bool isLeftChild, const nodePtr & parent)
 {
     if (current == nullptr) {
         m_size++;
         double xmin = parent->rect.xmin(), xmax = parent->rect.xmax(), ymin = parent->rect.ymin(), ymax = parent->rect.ymax();
-        if (isLeftChild) {
-            if (parent->vertical) {
-                xmax = parent->point.x();
-            }
-            else {
-                ymax = parent->point.y();
-            }
-        }
-        else {
-            if (parent->vertical) {
-                xmin = parent->point.x();
-            }
-            else {
-                ymin = parent->point.y();
-            }
-        }
+        updateCoordinates(parent, isLeftChild, xmin, xmax, ymin, ymax);
         current = std::make_shared<Node>(p, !parent->vertical, Rect({xmin, ymin}, {xmax, ymax}));
     }
     else if (needToGoLeft(current, p)) {
