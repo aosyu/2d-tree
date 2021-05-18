@@ -66,7 +66,7 @@ void PointSet::put(nodePtr & current, const Point & p, bool isLeftChild, const n
                 ymin = parent->point.y();
             }
         }
-        current = std::make_shared<Node>(p, !parent->vertical, *(new Rect({xmin, ymin}, {xmax, ymax})));
+        current = std::make_shared<Node>(p, !parent->vertical, Rect({xmin, ymin}, {xmax, ymax}));
     }
     else if (needToGoLeft(current, p)) {
         put(current->left, p, true, current);
