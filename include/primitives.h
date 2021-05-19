@@ -4,6 +4,7 @@
 #include <functional>
 #include <iostream>
 #include <iterator>
+#include <limits>
 #include <map>
 #include <memory>
 #include <optional>
@@ -62,12 +63,23 @@ public:
     {
     }
 
+    Rect()
+        : m_left_bottom({std::numeric_limits<double>::min(), std::numeric_limits<double>::min()})
+        , m_right_top({std::numeric_limits<double>::max(), std::numeric_limits<double>::max()})
+    {
+    }
+
     double xmin() const { return m_left_bottom.x(); }
     double ymin() const { return m_left_bottom.y(); }
     double xmax() const { return m_right_top.x(); }
     double ymax() const { return m_right_top.y(); }
-    double distance(const Point & p) const
 
+    std::pair<Point, Point> getPoints()
+    {
+        return {m_left_bottom, m_right_top};
+    }
+
+    double distance(const Point & p) const
     {
         const double x = std::max({xmin() - p.x(), p.x() - xmax(), 0.0});
         const double y = std::max({ymin() - p.y(), p.y() - ymax(), 0.0});
@@ -268,7 +280,9 @@ private:
     void range(const Rect & r, const std::shared_ptr<Node> & node, PointSet & m_range_result) const;
     void nearest(const Point & p, const Node & current, std::set<Point, decltype(pointComparator(p))> & m_nearest_answer, size_t k) const;
     bool needToGoLeft(const std::shared_ptr<Node> & current, const Point & p) const;
-    void updateCoordinates(const std::shared_ptr<Node> & parent, bool isLeftChild, double & xmin, double & xmax, double & ymin, double & ymax);
+    Rect updateCoordinates(const Node * parent, bool isLeftChild);
+    Node * makeTree(std::vector<Point> & input, bool vertical, Rect coordinates);
+    std::shared_ptr<Node> getChildPtr(const std::shared_ptr<Node> & parent, bool isLeftChild, const Point & p);
 };
 
 } // namespace kdtree
