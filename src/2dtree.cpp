@@ -55,7 +55,7 @@ Node * PointSet::makeTree(std::vector<Point> & input, bool vertical, Rect coordi
     input.push_back({0, 0});
     input.pop_back();
     // конец костыля
-    
+
     if (input.size() == 1) {
         return new Node(input[0], vertical, coordinates);
     }
