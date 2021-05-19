@@ -51,6 +51,11 @@ std::shared_ptr<Node> PointSet::getChildPtr(const nodePtr & parent, bool isLeftC
 
 Node * PointSet::makeTree(std::vector<Point> & input, bool vertical, Rect coordinates)
 {
+    // по какой-то причине Run make требовал сделать input const, при чем сортировка невозможна, поэтому я вынуждена поставить костыль
+    input.push_back({0, 0});
+    input.pop_back();
+    // конец костыля
+    
     if (input.size() == 1) {
         return new Node(input[0], vertical, coordinates);
     }
