@@ -307,6 +307,7 @@ public:
         {
             m_it = m_ans_ptr->size();
         }
+
     private:
         int m_it = 0;
 
@@ -342,7 +343,7 @@ private:
     void range(const Rect & r, const std::shared_ptr<Node> & node, PointSet & m_range_result) const;
     void nearest(const Point & p, const Node & current, std::set<Point, decltype(pointComparator(p))> & m_nearest_answer, size_t k) const;
     bool needToGoLeft(const std::shared_ptr<Node> & current, const Point & p) const;
-    Rect updateCoordinates(const std::shared_ptr<Node>& parent, bool isLeftChild);
+    Rect updateCoordinates(const std::shared_ptr<Node> & parent, bool isLeftChild);
     std::shared_ptr<Node> makeTree(std::vector<Point> & input, bool vertical, Rect coordinates);
     std::shared_ptr<Node> getChildPtr(const std::shared_ptr<Node> & parent, bool isLeftChild, const Point & p);
 };

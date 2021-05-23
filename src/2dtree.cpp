@@ -21,7 +21,7 @@ PointSet::PointSet(const std::string & filename)
     }
 }
 
-Rect PointSet::updateCoordinates(const std::shared_ptr<Node>& parent, bool isLeftChild)
+Rect PointSet::updateCoordinates(const std::shared_ptr<Node> & parent, bool isLeftChild)
 {
     Rect rect = parent->rect;
     auto [bot, top] = rect.getPoints();
