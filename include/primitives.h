@@ -15,12 +15,6 @@
 class Point
 {
 public:
-    Point()
-        : m_x(0)
-        , m_y(0)
-    {
-    }
-
     Point(double x, double y)
         : m_x(x)
         , m_y(y)
@@ -38,10 +32,10 @@ public:
 
     bool operator<(const Point & p) const { return (m_x == p.x() && m_y < p.y()) || (m_x < p.x()); }
     bool operator>(const Point & p) const { return (m_x == p.x() && m_y > p.y()) || (m_x > p.x()); }
-    bool operator<=(const Point & p) const { return (m_x == p.x() && m_y <= p.y()) || (m_x < p.x()); }
-    bool operator>=(const Point & p) const { return (m_x == p.x() && m_y >= p.y()) || (m_x > p.x()); }
+    bool operator<=(const Point & p) const { return !(*this > p); }
+    bool operator>=(const Point & p) const { return !(*this < p); }
     bool operator==(const Point & p) const { return m_x == p.x() && m_y == p.y(); }
-    bool operator!=(const Point & p) const { return !(m_x == p.x() && m_y == p.y()); }
+    bool operator!=(const Point & p) const { return !(*this == p); }
 
     friend std::ostream & operator<<(std::ostream & out, const Point & p)
     {
@@ -50,8 +44,8 @@ public:
     }
 
 private:
-    double m_x;
-    double m_y;
+    double m_x = 0;
+    double m_y = 0;
 };
 
 class Rect
@@ -99,7 +93,60 @@ namespace rbtree {
 class PointSet
 {
 public:
-    using iterator = std::set<Point>::iterator;
+    class iterator
+    {
+    public:
+        using difference_type = std::ptrdiff_t;
+        using value_type = Point;
+        using pointer = const Point *;
+        using reference = const Point &;
+        using iterator_category = std::forward_iterator_tag;
+
+        iterator() = default;
+        iterator(const iterator & other) = default;
+
+        iterator(const std::set<Point> & m_set)
+        {
+            m_ans_ptr = std::make_shared<std::vector<Point>>();
+            for (auto & x : m_set) {
+                m_ans_ptr->push_back(x);
+            }
+        }
+
+        reference operator*() { return (*m_ans_ptr)[m_it]; }
+        pointer operator->() { return (&(*m_ans_ptr)[m_it]); }
+
+        iterator & operator++()
+        {
+            m_it++;
+            return *this;
+        }
+        iterator operator++(int)
+        {
+            auto tmp = *this;
+            operator++();
+            return tmp;
+        }
+        iterator & operator=(const iterator & other)
+        {
+            m_it = other.m_it;
+            m_ans_ptr = other.m_ans_ptr;
+            return *this;
+        }
+
+        bool operator==(const iterator & other) const { return *m_ans_ptr == *other.m_ans_ptr && m_it == other.m_it; }
+        bool operator!=(const iterator & other) const { return !(*this == other); }
+
+        void end()
+        {
+            m_it = m_ans_ptr->size();
+        }
+
+    private:
+        int m_it = 0;
+
+        std::shared_ptr<std::vector<Point>> m_ans_ptr;
+    };
 
     PointSet(const std::string & filename = {})
     {
@@ -110,26 +157,34 @@ public:
                 m_tree.emplace(x, y);
             }
         }
-        in.close();
     }
+
     bool empty() const { return m_tree.empty(); }
     std::size_t size() const { return m_tree.size(); }
     void put(const Point & p) { m_tree.insert(p); }
     bool contains(const Point & p) const { return m_tree.end() != m_tree.find(p); }
+
     std::pair<iterator, iterator> range(const Rect & r) const
     {
-        std::set<Point> * m_range_result = new std::set<Point>();
-        range_answer.push_back(std::shared_ptr<std::set<Point>>(m_range_result));
+        std::set<Point> m_range_result;
         for (const auto it : m_tree) {
             if (r.contains(it)) {
-                m_range_result->insert(it);
+                m_range_result.insert(it);
             }
         }
-        return {m_range_result->begin(), m_range_result->end()};
+        iterator begin(m_range_result);
+        iterator end(m_range_result);
+        end.end();
+        return {begin, end};
     }
 
-    iterator begin() const { return m_tree.begin(); }
-    iterator end() const { return m_tree.end(); }
+    iterator begin() const { return iterator(m_tree); }
+    iterator end() const
+    {
+        iterator end = begin();
+        end.end();
+        return end;
+    }
 
     std::optional<Point> nearest(const Point & p) const
     {
@@ -137,23 +192,27 @@ public:
             return a.distance(p) < b.distance(p);
         }));
     }
+
     std::pair<iterator, iterator> nearest(const Point & p, std::size_t k) const
     {
-        std::set<Point> * m_nearest_result = new std::set<Point>();
-        nearest_answer.push_back(std::shared_ptr<std::set<Point>>(m_nearest_result));
+        std::set<Point> m_nearest_set;
         std::map<double, Point> map;
         for (const auto it : m_tree) {
             map.insert({p.distance(it), it});
         }
+
         auto it_ans = map.begin();
         for (std::size_t i = 0; i < k; i++) {
             if (it_ans == map.end()) {
                 break;
             }
-            m_nearest_result->emplace((*it_ans).second);
+            m_nearest_set.emplace(it_ans->second);
             it_ans++;
         }
-        return {m_nearest_result->begin(), m_nearest_result->end()};
+        iterator begin(m_nearest_set);
+        iterator end(m_nearest_set);
+        end.end();
+        return {begin, end};
     }
 
     friend std::ostream & operator<<(std::ostream & out, const PointSet & ps)
@@ -165,8 +224,6 @@ public:
     }
 
 private:
-    mutable std::vector<std::shared_ptr<std::set<Point>>> range_answer;
-    mutable std::vector<std::shared_ptr<std::set<Point>>> nearest_answer;
     std::set<Point> m_tree;
 };
 
@@ -197,15 +254,15 @@ public:
     public:
         using difference_type = std::ptrdiff_t;
         using value_type = Point;
-        using pointer = value_type *;
-        using reference = value_type &;
+        using pointer = const value_type *;
+        using reference = const value_type &;
         using iterator_category = std::forward_iterator_tag;
 
         iterator() = default;
         iterator(const PointSet & p, std::size_t i)
             : m_it(i)
         {
-            m_tree.reserve(p.size());
+            m_ans_ptr = std::make_shared<std::vector<Point>>();
             init(p.m_root);
         }
 
@@ -214,13 +271,13 @@ public:
             if (node == nullptr) {
                 return;
             }
-            m_tree.push_back(node->point);
+            m_ans_ptr->push_back(node->point);
             init(node->left);
             init(node->right);
         }
 
-        reference operator*() { return m_tree[m_it]; }
-        pointer operator->() { return &m_tree[m_it]; }
+        reference operator*() { return (*m_ans_ptr)[m_it]; }
+        pointer operator->() { return &operator*(); }
         iterator & operator++()
         {
             m_it++;
@@ -234,11 +291,11 @@ public:
         }
         bool operator==(const iterator & other) const
         {
-            if (m_it != other.m_it || m_tree.size() != other.m_tree.size()) {
+            if (m_it != other.m_it || m_ans_ptr->size() != other.m_ans_ptr->size()) {
                 return false;
             }
-            for (size_t i = 0; i < m_tree.size(); i++) {
-                if (m_tree[i] != other.m_tree[i]) {
+            for (size_t i = 0; i < m_ans_ptr->size(); i++) {
+                if ((*m_ans_ptr)[i] != (*other.m_ans_ptr)[i]) {
                     return false;
                 }
             }
@@ -246,9 +303,14 @@ public:
         }
         bool operator!=(const iterator & other) const { return !(operator==(other)); }
 
+        void end()
+        {
+            m_it = m_ans_ptr->size();
+        }
     private:
         int m_it = 0;
-        std::vector<Point> m_tree;
+
+        std::shared_ptr<std::vector<Point>> m_ans_ptr;
     };
 
     PointSet(const std::string & filename = {});
@@ -280,8 +342,8 @@ private:
     void range(const Rect & r, const std::shared_ptr<Node> & node, PointSet & m_range_result) const;
     void nearest(const Point & p, const Node & current, std::set<Point, decltype(pointComparator(p))> & m_nearest_answer, size_t k) const;
     bool needToGoLeft(const std::shared_ptr<Node> & current, const Point & p) const;
-    Rect updateCoordinates(const Node * parent, bool isLeftChild);
-    Node * makeTree(std::vector<Point> & input, bool vertical, Rect coordinates);
+    Rect updateCoordinates(const std::shared_ptr<Node>& parent, bool isLeftChild);
+    std::shared_ptr<Node> makeTree(std::vector<Point> & input, bool vertical, Rect coordinates);
     std::shared_ptr<Node> getChildPtr(const std::shared_ptr<Node> & parent, bool isLeftChild, const Point & p);
 };
 

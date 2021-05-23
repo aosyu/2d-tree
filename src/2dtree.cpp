@@ -17,12 +17,11 @@ PointSet::PointSet(const std::string & filename)
         }
     }
     if (!input.empty()) {
-        m_root = std::shared_ptr<Node>(makeTree(input, true, {}));
+        m_root = makeTree(input, true, {});
     }
-    in.close();
 }
 
-Rect PointSet::updateCoordinates(const Node * parent, bool isLeftChild)
+Rect PointSet::updateCoordinates(const std::shared_ptr<Node>& parent, bool isLeftChild)
 {
     Rect rect = parent->rect;
     auto [bot, top] = rect.getPoints();
@@ -45,11 +44,11 @@ Rect PointSet::updateCoordinates(const Node * parent, bool isLeftChild)
 
 std::shared_ptr<Node> PointSet::getChildPtr(const nodePtr & parent, bool isLeftChild, const Point & p)
 {
-    Rect newRect = updateCoordinates(parent.get(), isLeftChild);
+    Rect newRect = updateCoordinates(parent, isLeftChild);
     return std::make_shared<Node>(p, !parent->vertical, newRect);
 }
 
-Node * PointSet::makeTree(std::vector<Point> & input, bool vertical, Rect coordinates)
+std::shared_ptr<Node> PointSet::makeTree(std::vector<Point> & input, bool vertical, Rect coordinates)
 {
     // по какой-то причине Run make требовал сделать input const, при чем сортировка невозможна, поэтому я вынуждена поставить костыль
     input.push_back({0, 0});
@@ -57,7 +56,7 @@ Node * PointSet::makeTree(std::vector<Point> & input, bool vertical, Rect coordi
     // конец костыля
 
     if (input.size() == 1) {
-        return new Node(input[0], vertical, coordinates);
+        return std::make_shared<Node>(input[0], vertical, coordinates);
     }
     if (input.empty()) {
         return nullptr;
@@ -79,12 +78,10 @@ Node * PointSet::makeTree(std::vector<Point> & input, bool vertical, Rect coordi
     std::vector<Point> left(input.begin(), input.begin() + half_size);
     std::vector<Point> right(input.begin() + half_size, input.end());
 
-    Node * self = new Node(input[input.size() / 2], vertical, coordinates);
+    std::shared_ptr<Node> self = std::make_shared<Node>(input[input.size() / 2], vertical, coordinates);
 
-    Node * left_son = makeTree(left, !vertical, updateCoordinates(self, true));
-    Node * right_son = makeTree(right, !vertical, updateCoordinates(self, false));
-    self->left = std::shared_ptr<Node>(left_son);
-    self->right = std::shared_ptr<Node>(right_son);
+    self->left = makeTree(left, !vertical, updateCoordinates(self, true));
+    self->right = makeTree(right, !vertical, updateCoordinates(self, false));
 
     return self;
 }
@@ -130,10 +127,10 @@ bool PointSet::contains(const nodePtr & current, const Point & p) const
     if (current == nullptr) {
         return false;
     }
-    else if (current->point == p) {
+    if (current->point == p) {
         return true;
     }
-    else if (needToGoLeft(current, p)) {
+    if (needToGoLeft(current, p)) {
         return contains(current->left, p);
     }
     return contains(current->right, p);
@@ -206,7 +203,7 @@ std::pair<iterator, iterator> PointSet::nearest(const Point & p, std::size_t k) 
     std::set<Point, decltype(pointComparator(p))> m_nearest_answer(pointComparator(p));
     m_nearest_answer.insert(m_root->point);
     nearest(p, *m_root, m_nearest_answer, k);
-    for (const auto i : m_nearest_answer) {
+    for (const auto & i : m_nearest_answer) {
         ans.put(i);
     }
     return {ans.begin(), ans.end()};
@@ -215,7 +212,7 @@ std::pair<iterator, iterator> PointSet::nearest(const Point & p, std::size_t k) 
 std::ostream & operator<<(std::ostream & out, const PointSet & p)
 {
     for (const auto it : p) {
-        out << &it << std::endl;
+        out << &it << "\n";
     }
     return out;
 }
