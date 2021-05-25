@@ -128,9 +128,10 @@ public:
 
         bool operator==(const iterator & other) const { return m_it == other.m_it; }
         bool operator!=(const iterator & other) const { return !(*this == other); }
+        bool is_valid() const { return set_ptr != nullptr; }
 
     private:
-        std::shared_ptr<std::set<Point>> set_ptr;
+        std::shared_ptr<std::set<Point>> set_ptr = nullptr;
         std::set<Point>::iterator m_it;
     };
 
@@ -260,9 +261,10 @@ public:
         }
         bool operator==(const iterator & other) const { return m_it == other.m_it; }
         bool operator!=(const iterator & other) const { return !(operator==(other)); }
+        bool is_valid() const { return ans_ptr != nullptr; }
 
     private:
-        std::shared_ptr<std::vector<Point>> ans_ptr;
+        std::shared_ptr<std::vector<Point>> ans_ptr = nullptr;
         std::vector<Point>::iterator m_it;
     };
 
