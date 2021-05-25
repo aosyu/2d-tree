@@ -9,6 +9,7 @@ using nodePtr = std::shared_ptr<Node>;
 PointSet::PointSet(const std::string & filename)
 {
     std::ifstream in(filename);
+    m_tree = std::make_shared<std::vector<Point>>();
     std::vector<Point> input;
     if (in.is_open()) {
         double x, y;
@@ -19,6 +20,7 @@ PointSet::PointSet(const std::string & filename)
     if (!input.empty()) {
         m_root = makeTree(input, true, {});
     }
+    traverse(m_root);
 }
 
 Rect PointSet::updateCoordinates(const std::shared_ptr<Node> & parent, bool isLeftChild)
@@ -31,7 +33,6 @@ Rect PointSet::updateCoordinates(const std::shared_ptr<Node> & parent, bool isLe
         if (parent->vertical) {
             return {bot, {point.x(), top.y()}};
         }
-
         return {bot, {top.x(), point.y()}};
     }
 
@@ -58,11 +59,7 @@ std::shared_ptr<Node> PointSet::makeTree(std::vector<Point> & input, bool vertic
     if (input.size() == 1) {
         return std::make_shared<Node>(input[0], vertical, coordinates);
     }
-    if (input.empty()) {
-        return nullptr;
-    }
 
-    m_size++;
     if (vertical) {
         sort(input.begin(), input.end(), [](const Point & first, const Point & second) {
             return first.x() < second.x();
@@ -86,15 +83,23 @@ std::shared_ptr<Node> PointSet::makeTree(std::vector<Point> & input, bool vertic
     return self;
 }
 
-bool PointSet::empty() const { return m_size == 0; }
+bool PointSet::empty() const
+{
+    update_m_tree_if_needed();
+    return m_tree->empty();
+}
 
-std::size_t PointSet::size() const { return m_size; }
+std::size_t PointSet::size() const
+{
+    update_m_tree_if_needed();
+    return m_tree->size();
+}
 
 void PointSet::put(const Point & p)
 {
     if (m_root == nullptr) {
-        m_size = 1;
         m_root = std::make_shared<Node>(p, true, Rect());
+        m_tree->push_back(m_root->point);
         return;
     }
     if (!contains(p)) {
@@ -111,8 +116,8 @@ bool PointSet::needToGoLeft(const nodePtr & current, const Point & p) const
 void PointSet::put(nodePtr & current, const Point & p, bool isLeftChild, const nodePtr & parent)
 {
     if (current == nullptr) {
-        m_size++;
         current = getChildPtr(parent, isLeftChild, p);
+        unhandled_put = true;
     }
     else if (needToGoLeft(current, p)) {
         put(current->left, p, true, current);
@@ -137,76 +142,108 @@ bool PointSet::contains(const nodePtr & current, const Point & p) const
 }
 bool PointSet::contains(const Point & p) const { return !empty() && contains(m_root, p); }
 
-PointSet::iterator PointSet::begin() const { return iterator(*this, 0); }
-PointSet::iterator PointSet::end() const { return iterator(*this, size()); }
+void PointSet::traverse(const std::shared_ptr<Node> & node) const
+{
+    if (node == nullptr) {
+        return;
+    }
+    m_tree->push_back(node->point);
+    traverse(node->left);
+    traverse(node->right);
+}
 
-void PointSet::range(const Rect & r, const nodePtr & node, PointSet & m_range_result) const
+void PointSet::update_m_tree_if_needed() const
+{
+    if (unhandled_put) {
+        m_tree->clear();
+        traverse(m_root);
+        unhandled_put = false;
+    }
+}
+
+PointSet::iterator PointSet::begin() const
+{
+    update_m_tree_if_needed();
+    return iterator(m_tree, m_tree->begin());
+}
+
+PointSet::iterator PointSet::end() const
+{
+    update_m_tree_if_needed();
+    return iterator(m_tree, m_tree->end());
+}
+
+void PointSet::range(const Rect & r, const nodePtr & node, const std::shared_ptr<std::vector<Point>> & result) const
 {
     if (node == nullptr || !r.intersects(node->rect)) {
         return;
     }
     if (r.contains(node->point)) {
-        m_range_result.put(node->point);
+        result->push_back(node->point);
     }
-    range(r, node->left, m_range_result);
-    range(r, node->right, m_range_result);
+    range(r, node->left, result);
+    range(r, node->right, result);
 }
 
 std::pair<iterator, iterator> PointSet::range(const Rect & r) const
 {
-    PointSet m_range_result;
-    range(r, m_root, m_range_result);
-    return {m_range_result.begin(), m_range_result.end()};
+    std::shared_ptr<std::vector<Point>> ans_ptr = std::make_shared<std::vector<Point>>();
+    range(r, m_root, ans_ptr);
+    iterator begin(ans_ptr, ans_ptr->begin());
+    iterator end(ans_ptr, ans_ptr->end());
+    return {begin, end};
 }
 
-void PointSet::nearest(const Point & p, const Node & current, std::set<Point, decltype(pointComparator(p))> & m_nearest_answer, const size_t k) const
+void PointSet::nearest(const Point & p, const Node & current, std::set<Point, decltype(pointComparator(p))> & result, const size_t k) const
 {
-    if (p.distance(*prev(m_nearest_answer.end())) >= p.distance(current.point) || m_nearest_answer.size() < k) {
-        if (m_nearest_answer.size() == k) {
-            m_nearest_answer.erase(prev(m_nearest_answer.end()));
+    if (p.distance(*prev(result.end())) >= p.distance(current.point) || result.size() < k) {
+        if (result.size() == k) {
+            result.erase(prev(result.end()));
         }
-        m_nearest_answer.insert(current.point);
+        result.insert(current.point);
     }
 
     if (current.left != nullptr &&
         ((!current.vertical && p.x() < current.point.x()) ||
          (current.vertical && p.y() < current.point.y()) || current.right == nullptr)) {
 
-        nearest(p, *current.left, m_nearest_answer, k);
+        nearest(p, *current.left, result, k);
 
-        if (current.right != nullptr && (p.distance(*prev(m_nearest_answer.end())) >= current.right->rect.distance(p) || m_nearest_answer.size() < k)) {
-            nearest(p, *current.right, m_nearest_answer, k);
+        if (current.right != nullptr && (p.distance(*prev(result.end())) >= current.right->rect.distance(p) || result.size() < k)) {
+            nearest(p, *current.right, result, k);
         }
     }
     else if (current.right != nullptr) {
-        nearest(p, *current.right, m_nearest_answer, k);
+        nearest(p, *current.right, result, k);
 
-        if (current.left != nullptr && (p.distance(*prev(m_nearest_answer.end())) >= current.left->rect.distance(p) || m_nearest_answer.size() < k)) {
-            nearest(p, *current.left, m_nearest_answer, k);
+        if (current.left != nullptr && (p.distance(*prev(result.end())) >= current.left->rect.distance(p) || result.size() < k)) {
+            nearest(p, *current.left, result, k);
         }
     }
 }
 
 std::optional<Point> PointSet::nearest(const Point & p) const
 {
-    std::set<Point, decltype(pointComparator(p))> m_nearest_answer(pointComparator(p));
-    m_nearest_answer.insert(m_root->point);
-    nearest(p, *m_root, m_nearest_answer, 1);
-    return *m_nearest_answer.begin();
+    std::set<Point, decltype(pointComparator(p))> answer(pointComparator(p));
+    answer.insert(m_root->point);
+    nearest(p, *m_root, answer, 1);
+    return *answer.begin();
 }
+
 std::pair<iterator, iterator> PointSet::nearest(const Point & p, std::size_t k) const
 {
-    PointSet ans;
     if (k == 0) {
-        return {ans.begin(), ans.end()};
+        return {{}, {}};
     }
-    std::set<Point, decltype(pointComparator(p))> m_nearest_answer(pointComparator(p));
-    m_nearest_answer.insert(m_root->point);
-    nearest(p, *m_root, m_nearest_answer, k);
-    for (const auto & i : m_nearest_answer) {
-        ans.put(i);
-    }
-    return {ans.begin(), ans.end()};
+
+    std::set<Point, decltype(pointComparator(p))> answer(pointComparator(p));
+    answer.insert(m_root->point);
+    nearest(p, *m_root, answer, k);
+
+    std::shared_ptr<std::vector<Point>> ans_ptr = std::make_shared<std::vector<Point>>(answer.begin(), answer.end());
+    iterator begin(ans_ptr, ans_ptr->begin());
+    iterator end(ans_ptr, ans_ptr->end());
+    return {begin, end};
 }
 
 std::ostream & operator<<(std::ostream & out, const PointSet & p)
@@ -216,4 +253,5 @@ std::ostream & operator<<(std::ostream & out, const PointSet & p)
     }
     return out;
 }
+
 } // namespace kdtree
